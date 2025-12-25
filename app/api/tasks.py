@@ -9,7 +9,7 @@ from ..core.dependencies import get_db
 from ..models.user import User
 from ..models.task import Task, TaskStatus, Priority, Category
 from ..schemas.tasks import TaskCreate, TaskResponse, TaskUpdate
-from .deps import get_current_user, get_user, get_admin
+from .deps import get_current_user, get_user
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -50,9 +50,7 @@ def create_task(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Task already exists."
         )
     existing_task_category = (
-        db.query(Category)
-        .filter(Category.category_id == task_data.category_id)
-        .first()
+        db.query(Category).filter(Category.category_id == task_data.category_id).first()
     )
     if not existing_task_category:
         raise HTTPException(
@@ -69,7 +67,7 @@ def create_task(
     db.add(new_task)
     db.commit()
     db.refresh(new_task)
-    
+
     return new_task
 
 
@@ -93,7 +91,9 @@ def get_one_task(
     user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
 ):
-    task = db.query(Task).filter(Task.task_id == pk, Task.user_id == user.user_id).first()
+    task = (
+        db.query(Task).filter(Task.task_id == pk, Task.user_id == user.user_id).first()
+    )
     if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Task not found."
@@ -109,7 +109,9 @@ def update_task(
     db: Annotated[Session, Depends(get_db)],
     task_data: TaskUpdate,
 ):
-    task = db.query(Task).filter(Task.task_id == pk, Task.user_id == user.user_id).first()
+    task = (
+        db.query(Task).filter(Task.task_id == pk, Task.user_id == user.user_id).first()
+    )
     if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Task not found."
@@ -123,11 +125,14 @@ def update_task(
         )
         if existing_task:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Task with this name already exists."
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Task with this name already exists.",
             )
         task.name = task_data.name
 
-    task.description = task_data.description if task_data.description else task.description
+    task.description = (
+        task_data.description if task_data.description else task.description
+    )
     task.status = task_data.status if task_data.status else task.status
     task.due_date = task_data.due_date if task_data.due_date else task.due_date
     if task_data.category_id:
@@ -138,7 +143,8 @@ def update_task(
         )
         if not existing_task_category:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Category does not exist."
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Category does not exist.",
             )
         task.category_id = task_data.category_id
 
@@ -154,7 +160,9 @@ def delete_task(
     user: Annotated[User, Depends(get_user)],
     db: Annotated[Session, Depends(get_db)],
 ):
-    task = db.query(Task).filter(Task.task_id == pk, Task.user_id == user.user_id).first()
+    task = (
+        db.query(Task).filter(Task.task_id == pk, Task.user_id == user.user_id).first()
+    )
     if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Task not found."
@@ -164,5 +172,3 @@ def delete_task(
     db.commit()
 
     return {"detail": "Task deleted successfully."}
-
-
